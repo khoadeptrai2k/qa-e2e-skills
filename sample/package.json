@@ -1,0 +1,12 @@
+{
+  "name": "playwright-qa-kit-sample",
+  "private": true,
+  "scripts": {
+    "start": "node app/server.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.65.0"
+  }
+}

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Booking</title>
+  </head>
+  <body>
+    <main>
+      <h1>Booking</h1>
+      <form id="booking-form">
+        <label for="driver">Driver</label>
+        <select id="driver" name="driver" required>
+          <option value="">Select a driver</option>
+        </select>
+        <label for="vehicle">Vehicle</label>
+        <select id="vehicle" name="vehicle" required disabled>
+          <option value="">Select a vehicle</option>
+        </select>
+        <p id="rate">Select a driver and vehicle to see the rate.</p>
+        <button id="confirm" type="submit" disabled>Confirm booking</button>
+      </form>
+      <p id="result" role="status" aria-label="Booking result"></p>
+    </main>
+    <script>
+      const driverSelect = document.querySelector("#driver");
+      const vehicleSelect = document.querySelector("#vehicle");
+      const rate = document.querySelector("#rate");
+      const confirmButton = document.querySelector("#confirm");
+      const result = document.querySelector("#result");
+
+      function resetVehicle() {
+        vehicleSelect.replaceChildren(new Option("Select a vehicle", ""));
+        vehicleSelect.disabled = true;
+        confirmButton.disabled = true;
+        rate.textContent = "Select a driver and vehicle to see the rate.";
+      }
+
+      async function loadDrivers() {
+        const response = await fetch("/api/drivers");
+        const body = await response.json();
+        for (const driver of body.drivers) {
+          const option = new Option(
+            driver.available ? driver.name : `${driver.name} (unavailable)`,
+            driver.id,
+          );
+          option.disabled = !driver.available;
+          driverSelect.append(option);
+        }
+      }
+
+      driverSelect.addEventListener("change", async () => {
+        result.textContent = "";
+        resetVehicle();
+        if (!driverSelect.value) return;
+        const response = await fetch(
+          "/api/vehicles?driverId=" + encodeURIComponent(driverSelect.value),
+        );
+        const body = await response.json();
+        for (const vehicle of body.vehicles) {
+          vehicleSelect.append(new Option(vehicle.name, vehicle.id));
+        }
+        vehicleSelect.disabled = false;
+      });
+
+      vehicleSelect.addEventListener("change", async () => {
+        result.textContent = "";
+        confirmButton.disabled = true;
+        if (!vehicleSelect.value) {
+          rate.textContent = "Select a driver and vehicle to see the rate.";
+          return;
+        }
+        const response = await fetch(
+          "/api/rates?vehicleId=" + encodeURIComponent(vehicleSelect.value),
+        );
+        if (!response.ok) {
+          rate.textContent = "No rate configured";
+          return;
+        }
+        const body = await response.json();
+        rate.textContent = `Rate ${body.rate.amount} ${body.rate.currency}`;
+        confirmButton.disabled = false;
+      });
+
+      document.querySelector("#booking-form").addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const response = await fetch("/api/bookings", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            driverId: driverSelect.value,
+            vehicleId: vehicleSelect.value,
+          }),
+        });
+        const body = await response.json();
+        if (!response.ok) {
+          result.textContent = body.error;
+          return;
+        }
+        const booking = body.booking;
+        result.textContent = `Booking ${booking.id} confirmed for ${booking.driverName}, ${booking.vehicleName} at ${booking.amount} ${booking.currency}`;
+      });
+
+      loadDrivers();
+    </script>
+  </body>
+</html>
