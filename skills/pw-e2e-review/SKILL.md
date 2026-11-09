@@ -5,7 +5,7 @@ description: Review Playwright E2E code against source test cases and discovered
 
 # Review case-based E2E tests
 
-Read applicable repository instructions, supplied test cases and requirements, relevant tests, helpers, fixtures, and config. Use `qa/project-context.md` if available. Write every reply and document in English. No sibling skill is required. Read [E2E contract](references/e2e-contract.md) and treat a breach of it as a finding, including a breach inherited from fixtures or config.
+Read applicable repository instructions, supplied test cases and requirements, relevant tests, helpers, fixtures, and config. Use `qa/project-context.md` if available. Reply in the user's language. Write test titles, code comments, and saved documents in English unless the repository already uses another language. No sibling skill is required. Read [E2E contract](references/e2e-contract.md) and treat a breach of it as a finding, including a breach inherited from fixtures or config.
 
 ## Check contract and execution
 
@@ -13,7 +13,7 @@ Map each in-scope case and meaningful expected outcome to a test, step, or asser
 
 Check for false passes: conditional assertions, empty bodies, swallowed exceptions, missing awaits, skips, and expectations copied from actual output without an independent oracle. Verify that the test would fail if its named behavior broke.
 
-Check locators for verified intent and uniqueness, synchronization for observable readiness, and setup for both browser and backend isolation. Inspect fixture teardown ownership, shared auth mutations, order dependence, parallel collisions, and secret or artifact handling. Recommend an abstraction only when duplication or behavior justifies it.
+Check locators for verified intent and uniqueness, synchronization for observable readiness, and setup for both browser and backend isolation. Inspect fixture teardown ownership, shared auth mutations, order dependence, parallel collisions, and secret or artifact handling. Check the contract's test-quality list item by item, including cleanup that can stop early and `test.fail()` reported as a pass. Search the repo's existing fixtures and helpers and report new test code that duplicates one. Recommend an abstraction only when duplication or behavior justifies it.
 
 Review existing execution evidence. When permitted and useful, run focused tests and relevant static checks. Distinguish static reasoning from an observed failure. Test listing and compile success do not prove E2E behavior. Preserve existing files in a review-only task. Done when every in-scope case is mapped or marked unmapped, and each suspected false pass has been checked against the contract.
 

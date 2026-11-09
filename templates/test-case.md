@@ -17,7 +17,7 @@ Use this structure for supplied and UI-discovered cases. Existing formats are ac
 - Actual UI behavior (for discoveries):
 - Evidence / artifact path:
 - Missing coverage in existing cases:
-- Decision: ready to automate / proposed / blocked / manual / duplicate
+- Decision: ready / proposed / blocked / manual / duplicate
 - Cleanup:
 - Open business question, if any:
 

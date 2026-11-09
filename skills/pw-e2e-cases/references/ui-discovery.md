@@ -18,6 +18,6 @@ Record each useful discovery:
 
 | ID | UI evidence / route / state | Missing scenario | Expected result + source | Decision |
 | --- | --- | --- | --- | --- |
-| DISC-01 | Actual observed evidence | Reproducible steps + prerequisites | Requirement/case source, or unknown | Automate / propose / blocked / manual |
+| DISC-01 | Actual observed evidence | Reproducible steps + prerequisites | Requirement/case source, or unknown | ready / proposed / blocked / manual / duplicate |
 
-Reference existing screenshots/traces when available; capture only useful evidence. Merge duplicate scenarios with source IDs instead of inflating test counts. Promote a discovery to an acceptance test when its expected behavior is grounded in the supplied cases, documented requirements or user confirmation. Otherwise keep it proposed and ask a focused business question.
+Reference existing screenshots/traces when available; capture only useful evidence. Merge duplicate scenarios with source IDs instead of inflating test counts. Use the case decision vocabulary from the E2E contract. Promote a discovery to `ready` when its expected behavior is grounded in the supplied cases, documented requirements or user confirmation. Otherwise keep it proposed and ask a focused business question.

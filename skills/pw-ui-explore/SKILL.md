@@ -5,7 +5,7 @@ description: Explore a live application's UI as a QA to discover missing test ca
 
 # Explore UI for missing cases
 
-Deliver reproducible discoveries with evidence, not an invented list of generic cases. Write every reply and document in English. This skill works independently of other skills and does not require a particular browser integration. It does not write, edit, or run acceptance tests.
+Deliver reproducible discoveries with evidence, not an invented list of generic cases. Reply in the user's language. Write test titles, code comments, and saved documents in English unless the repository already uses another language. This skill works independently of other skills and does not require a particular browser integration. It does not write, edit, or run acceptance tests.
 
 ## Set scope and gain evidence
 
@@ -26,7 +26,7 @@ For each discovery, record:
 - Actual behavior and an artifact reference if one was captured.
 - Expected behavior and its source. Mark unknown when unsupported.
 - Why existing cases miss it, plus impact and confidence based on evidence.
-- Decision: ready to automate, needs business clarification, blocked, duplicate, or manual.
+- Case decision from the E2E contract: `ready`, `proposed`, `blocked`, `manual`, or `duplicate`.
 
 Current UI behavior is not proof of correct behavior. A documented rule that the observation violates supports a candidate defect. Without that rule, report the observation and a focused question. Do not invent field limits, error messages, or permissions. Done when every recorded discovery has evidence, an expectation source or `unknown`, and a decision.
 

@@ -12,7 +12,7 @@ Copy to `qa/project-context.md` in the target project if useful. Replace unknown
 | Login / MFA / session setup | Unknown |
 | Playwright config and resolved version | Unknown |
 | Package manager / focused test command | Unknown |
-| Existing fixtures, helpers, test directory | Unknown |
+| Existing fixtures, helpers, page objects, data factories, test directory | Unknown; list path and purpose of each |
 | Locator / test ID conventions | Unknown |
 | Data setup, record ownership and cleanup | Unknown |
 | Browser / device requirements | Unknown |

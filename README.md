@@ -1,14 +1,15 @@
 # Playwright QA Kit
 
-Skills for **test case → find missing UI coverage → write Playwright E2E → run → report evidence**. For Cursor, Claude Code, and Codex. Agent instructions, replies, and documents are English.
+Skills for **test case → find missing UI coverage → write Playwright E2E → run → report evidence**. For Cursor, Claude Code, and Codex. Agents reply in the user's language; test titles, comments, and saved docs stay English unless the repo uses another language.
 
-Start with the [step-by-step guide](GUIDE.md): install, a short prompt, dependencies such as Booking → Driver / Vehicle / Rate, the docs you get back, and how to rerun.
+Start with the [step-by-step guide](GUIDE.md) ([tiếng Việt](HUONG-DAN.md)): install and upgrade, which skill to pick, the four workflows (case file, screen sweep with checkpoints, discovery without cases, debug and review), dependencies such as Booking → Driver / Vehicle / Rate, the docs you get back, and how to rerun.
 
-## Four skills
+## Five skills
 
 | Skill | When to use it |
 | --- | --- |
 | `pw-e2e-cases` | Write and run E2E from test cases, including a UI walkthrough of the same feature when a browser is available |
+| `pw-e2e-screen` | Everything `pw-e2e-cases` does for one screen, plus a sweep of every button, link, menu, tab, dialog, and sub-route inside it. Ends each round by asking whether to write more tests, add case files, run reachability checks, or stop |
 | `pw-ui-explore` | Walk the UI and record missing cases and defect candidates with steps and evidence. Discovery only; it does not write tests |
 | `pw-e2e-debug` | Diagnose a failing or flaky test and separate test, application, data, and environment causes |
 | `pw-e2e-review` | Review assertions, case mapping, and stability. It does not edit code unless asked |
@@ -34,7 +35,7 @@ Replace the path with the real repo. You can pass `--agent cursor`, `--agent cla
 
 Cursor reads both `.agents/skills` and `.cursor/skills`. The installer uses the Codex path so Cursor does not load two copies of the same skill. If you install Cursor skills under `.cursor/skills` yourself, keep one copy in each location Cursor reads.
 
-The installer copies the four skills, checks for conflicts before writing, and refuses to overwrite or follow a symlink on the destination path. It does not edit `AGENTS.md`, `CLAUDE.md`, rules, tests, or project config. If a skill of the same name already exists, compare and update it by hand. If a filesystem error happens mid-copy, use the printed paths to see what was copied. There is no automatic rollback.
+The installer copies the five skills, checks for conflicts before writing, and refuses to overwrite or follow a symlink on the destination path. It does not edit `AGENTS.md`, `CLAUDE.md`, rules, tests, or project config. If a skill of the same name already exists, compare and update it by hand. If a filesystem error happens mid-copy, use the printed paths to see what was copied. There is no automatic rollback.
 
 After install, open a new chat in that project and check the tool's skill list. Name the skill if the agent does not select it. In Codex use `$pw-e2e-cases`. In Claude Code and Cursor use `/pw-e2e-cases`, or name it in a normal sentence. If the organization restricts custom skills, check that tool's policy.
 
@@ -42,7 +43,7 @@ This kit is for a coding agent with repo and tool access. Pasting the Markdown i
 
 ## Real E2E, one request
 
-`pw-e2e-cases` is the only entry for a full screen or module: read every case, read the related source, walk the UI for missing cases, write tests, run them, and report results. You do not call the four skills in sequence. The other three are for explore-only, debug-only, or review-only work. `pw-ui-explore` stops at a discovery report.
+`pw-e2e-cases` is the entry for a screen or module driven by a case file: read every case, read the related source, walk the UI for missing cases, write tests, run them, and report results. `pw-e2e-screen` is the entry when you want every control and sub-route of one screen inventoried and mapped to cases; it works in rounds and stops at a checkpoint question after each one. You do not call the skills in sequence. The other three are for explore-only, debug-only, or review-only work. `pw-ui-explore` stops at a discovery report.
 
 Every source case gets a mapping result. Do not stop after a sample and call that complete. A case missing an expected result, an account, or a real precondition can stay proposed, blocked, or manual. "Full" means every in-scope case is implemented or explained. It does not mean every possible product defect was found.
 
@@ -63,6 +64,17 @@ cases missing from the same feature. Record new cases as DISC-N with evidence.
 Write and run cases whose expected result is established. Keep unclear
 business behavior proposed, and report the question that needs confirmation.
 ```
+
+### Sweep a whole screen, round by round
+
+```text
+Use pw-e2e-screen on the <screen> screen (entry route <route>).
+Cases are in <file>. Inventory every button, link, menu, tab, dialog, and
+sub-route, map them to the cases, write and run tests for the grounded ones,
+then ask me before writing more.
+```
+
+The inventory is saved in `qa/screens/<screen>.md` with `RT-N` (sub-routes) and `EL-N` (controls). The sweep stays inside that screen. A button that leads to another screen gets one landing check and a preview of that screen's main actions (seen, not clicked), so the checkpoint can suggest it by name, and a case whose journey crosses into another screen is still tested end to end. At the checkpoint you answer: write more tests, add case files, reachability checks only, sweep a linked screen next, or stop. Controls that delete shared data, pay, send messages, sign out, or leave the environment are recorded but not clicked without your permission.
 
 ### Explore the UI only
 
@@ -92,7 +104,7 @@ After implementation, the skill creates or updates the module's E2E docs using t
 - Working directory, dependency and browser setup, environment variable names, roles, and how to prepare and clean up data.
 - Copyable commands for the whole module and each implemented case, using the real config, browser, and package manager.
 - Commands to open the report or trace, with the real artifact paths.
-- Commands that were actually run, and the result. Separate not-run, blocked, failed, flaky, and passed.
+- Commands that were actually run, and the result. Separate not-run, blocked, failed, flaky, expected-fail, and passed.
 
 A case that was not implemented does not get a fake command. A command checked only with `--list` does not prove the test passed. An explore-only run saves a discovery report and does not claim that tests or run commands exist.
 
@@ -102,11 +114,15 @@ If you need it, copy `templates/project-context.md` to `qa/project-context.md` i
 
 Three sources stay distinct: the **source case**, **behavior observed in the UI**, and a **confirmed requirement**. What the UI does now does not prove that behavior is correct. The skills may explore inside the scope you give them. A case without a trustworthy expected result is proposed, not turned into a guessed assertion.
 
-The skills do not change an expected result, skip a test, or mock a business flow to force a pass. They forbid mocks and stubs in the E2E journey itself, not only mocks used to force green. They report written/not-run, passed, flaky, failed, skipped, and blocked separately. They do not ask for CI, a browser matrix, or a large framework for a small test.
+The skills do not change an expected result, skip a test, or mock a business flow to force a pass. They forbid mocks and stubs in the E2E journey itself, not only mocks used to force green. They report `passed`, `failed`, `flaky`, `skipped`, `expected-fail`, `blocked`, and `not-run` separately; the shared vocabulary is in `e2e-contract.md`. Before writing code, `pw-e2e-cases` inventories the repo's existing fixtures, helpers, page objects, and data factories and reuses them. They do not ask for CI, a browser matrix, or a large framework for a small test.
+
+## Maintaining the kit
+
+Each skill carries its own copy of `references/e2e-contract.md`, and `pw-e2e-cases` and `pw-e2e-screen` share `implementation.md`, `examples.md`, `runbook.md`, and `ui-discovery.md`, so each skill works standalone. Edit every copy of a shared file together, then run `python3 install.py --check`; the installer also refuses to install a kit whose copies differ. Manual behavior scenarios live in [evals/README.md](evals/README.md).
 
 ## Proof and limits
 
-Structure and frontmatter were checked, and the installer was exercised in a temporary directory: single-agent and all-agent copy, conflict refusal, dry-run, and reference files copied with each skill. `sample/` is a local Booking module with a real page and HTTP service. On 2026-11-09, `npm run test:e2e` in `sample/` passed 3 tests on Chromium (`@playwright/test` 1.65.0): BK-01, BK-02, and BK-03. BK-04 stayed blocked. DISC-01 stayed proposed. Details are in `sample/qa/e2e/booking.md`. That run is not proof on three products or an arbitrary website. Results still depend on the model, permissions, data, and browser tools of each host.
+Structure and frontmatter were checked, and the installer was exercised in a temporary directory: single-agent and all-agent copy, conflict refusal, dry-run, and reference files copied with each skill. `sample/` is a local Booking module with a real page and HTTP service. On 2026-11-09, `npx playwright test` in `sample/` passed 3 tests on Chromium (`@playwright/test` 1.65.0): BK-01, BK-02, and BK-03, and 15 of 15 with `--repeat-each=5`. BK-04 stayed blocked. DISC-01 stayed proposed. Details are in `sample/qa/e2e/booking.md`. That run is not proof on three products or an arbitrary website. Results still depend on the model, permissions, data, and browser tools of each host.
 
 ## References
 

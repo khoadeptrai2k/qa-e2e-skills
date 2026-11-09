@@ -1,76 +1,150 @@
 # How to use the Playwright QA Kit
 
-## Step 1 — Install the skills into the test repo
+Vietnamese version: [HUONG-DAN.md](HUONG-DAN.md).
 
-Unzip the kit. In a terminal at the directory that contains `install.py`, run:
+## Step 1 — Install or upgrade the skills
+
+In a terminal at the kit directory (the one with `install.py`):
 
 ```bash
+python3 install.py --check
+python3 install.py --project "/path/to/the-test-repo" --agent all --dry-run
 python3 install.py --project "/path/to/the-test-repo" --agent all
 ```
 
-Replace the path with the real repo. Install once per repo. You can replace `all` with `cursor`, `claude`, or `codex`. If a skill of the same name already exists, the installer stops. Compare and update by hand instead of rerunning to overwrite. When upgrading, copy the new skill directories over the installed ones, including `references/`.
+`--check` validates the kit itself. `--dry-run` prints what would be copied. Replace `all` with `claude`, `cursor`, or `codex` for one tool. Install once per repo.
 
-## Step 2 — Open the repo and provide inputs
+**Upgrading.** The installer never overwrites. Delete the old skill folders in the project first, then install again:
 
-Open the test repo in Cursor, Claude Code, or Codex, and start a new chat so the skills are picked up.
-
-- Attach the test-case file or give its path.
-- Let the agent read frontend and backend source: same workspace, or read access to the related repo path.
-- Have a running test environment, a suitable account, and browser tooling for the UI walkthrough.
-- Use the project's secret or env mechanism for accounts. Do not put passwords or tokens in docs.
-
-If the URL, role, or run command is already in the repo, you do not need to type it again. You can record remaining facts in `qa/project-context.md` from the bundled template. Installing a skill does not by itself grant access to a repo, a browser, or an account.
-
-## Step 3 — Send one request
-
-```text
-Use pw-e2e-cases. Read the project source and the attached case file,
-and write E2E for the Booking module, including related dependencies.
+```bash
+cd "/path/to/the-test-repo"
+rm -rf .claude/skills/pw-e2e-* .claude/skills/pw-ui-explore .agents/skills/pw-e2e-* .agents/skills/pw-ui-explore
 ```
 
-Replace `Booking` with the screen or module under test. If the source lives elsewhere, add the path. You can also call `$pw-e2e-cases` in Codex or `/pw-e2e-cases` in Claude Code and Cursor. Naming the skill in a sentence, as above, is enough.
+Then rerun the install command. Your tests, `qa/` documents, and project context are not touched.
 
-You do not call explore, debug, and review in sequence. `pw-e2e-cases` already covers the flow: read every case, read source, explore the UI, add cases, write and run tests, write docs. Use `pw-ui-explore` only when you want the discovery report and no test code.
+## Step 2 — Prepare the project
 
-## Step 4 — The agent handles dependencies
+Open the test repo in Claude Code, Cursor, or Codex and start a **new chat** so the skills load. The agent needs:
 
-For Booking, Driver, Vehicle, and Rate may be dependencies. That is an example. The real relationships have to be verified from source and the environment.
+- **Case files**: the path, or attach them. Any readable format; `templates/test-case.md` is optional.
+- **Source access**: frontend and backend in the same workspace, or a readable path to them.
+- **A running test environment**, a test account per role, and browser tooling for live UI work.
+- **Secrets in env variables** or the project's secret mechanism. Never in docs or chat.
+- **Playwright already installed** in the repo. The kit does not install it.
 
-| Piece | What the agent does inside the Booking scope |
-| --- | --- |
-| Driver | Find the availability rule and the data or account the booking or assignment flow needs |
-| Vehicle | Find the vehicle type, status, and any relationship to the driver |
-| Rate | Find the price configuration that applies, and an expected result that does not come from reimplementing the app's math |
-| Booking | Run the journey through the UI and check the related outcomes against the established requirement |
+Optional: copy `templates/project-context.md` to `qa/project-context.md` and fill in what you know (base URL variable, roles, run command, helper folders). The agent verifies and completes it.
 
-The agent builds a dependency map, uses real test-environment data, and prepares and cleans up records the test owns. A real API may set up or clean up when that is permitted. The business step under test still goes through the UI.
+## Step 3 — Pick the skill
 
-Extra cases may include an unavailable driver, an unsuitable vehicle, or a missing rate **when the real business rules include those conditions**. If it is not clear how the system should behave, record `proposed` and ask. Do not invent the expected result.
+| You want | Skill | Stops when |
+| --- | --- | --- |
+| Tests for every case in a case file, plus missing cases found on the way | `pw-e2e-cases` | All cases mapped, tests run, runbook written |
+| Every button, link, tab, dialog, and sub-route of one screen inventoried and tested, round by round | `pw-e2e-screen` | After each round, at a checkpoint question |
+| New test cases written by walking the UI, no code | `pw-ui-explore` | Discovery report saved |
+| A failing or flaky test fixed or explained | `pw-e2e-debug` | Cause classified, smallest fix verified |
+| An audit of existing tests, no edits | `pw-e2e-review` | Findings and coverage map reported |
 
-Do not expand into a full CRUD suite for every related module. If assigning a driver or calculating a price is the thing under test, that step is part of the E2E journey. Do not replace it with API setup. If a permission, service, or real record is missing, report `blocked`, continue independent cases, and write down how to unblock.
+You do not chain them. Each one runs alone. Name the skill in the first sentence; `/pw-e2e-screen` (Claude Code, Cursor) or `$pw-e2e-screen` (Codex) also works.
+
+## Workflow A — Tests from a case file
+
+```text
+Use pw-e2e-cases on every case in <case file> for the <module> module.
+Read source at <paths>. Real test environment, no mocks.
+```
+
+The agent: inventories existing fixtures and helpers → reads every case → reads source → builds the dependency map → walks the UI for missing cases (`DISC-N`) → writes tests for `ready` cases → runs them → writes `qa/e2e/<module>.md`.
+
+## Workflow B — Sweep one screen, round by round
+
+```text
+Use pw-e2e-screen on the <screen> screen (entry route <route>).
+Cases are in <case file>. Ask me before writing more.
+```
+
+Each round:
+
+1. **Inventory** every sub-route (`RT-N`) and control (`EL-N`) inside the screen, from source and the live UI, with a risk class: `safe`, `mutating-owned`, `destructive`, `external`. Only `safe` and test-owned actions are clicked.
+2. **Links out**: a button to another screen gets one landing check and a preview of that screen's main actions, read but not clicked.
+3. **Map** each item to cases. Items with no case are `uncovered`.
+4. **Write and run** tests for `ready` cases. A case that crosses into another screen is tested end to end.
+5. **Save** `qa/screens/<screen>.md` and the runbook.
+6. **Checkpoint**: the agent asks and waits.
+
+How to answer the checkpoint:
+
+| Option | Reply example | What happens next |
+| --- | --- | --- |
+| Write more tests | `Option 1: EL-4, EL-6` | Tests for those items whose expected result is established |
+| Add files | `Option 2: added cases/booking-detail.md` | The agent reads the file and maps it in the next round |
+| Reachability only | `Option 3` | Tests that each sub-route opens and each safe control reaches its target, labeled `reachability` |
+| Sweep a linked screen | `Option 4: Driver` | A new sweep of that screen with its own `qa/screens/driver.md` |
+| Stop | `Option 5` | Documents finalized, uncovered items listed with reasons |
+
+To continue later, send the same request in a new chat. The agent reads `qa/screens/<screen>.md` and resumes from the last checkpoint with the same IDs.
+
+## Workflow C — No case file yet
+
+1. **Discover**:
+   ```text
+   Use pw-ui-explore on the <screen> screen. Write the missing cases with steps,
+   actual result, and the question that needs a business answer. No test code.
+   ```
+   Output: `qa/discovery/<screen>.md` with `DISC-N` cases. Cases without a confirmed expected result are `proposed`.
+2. **Confirm**: answer each question in that file or in a case file. Write the expected result and its source (requirement, ticket, or your decision).
+3. **Automate**: run Workflow A on the confirmed file, or answer a `pw-e2e-screen` checkpoint with Option 2.
+
+The agent never turns what the UI currently does into an expected result on its own. Step 2 is the human decision.
+
+## Workflow D — Debug or review
+
+```text
+Use pw-e2e-debug on <test file or case ID>. Here is the failing output/trace: <path>.
+```
+
+```text
+Use pw-e2e-review on <test files> against <case file>. Do not edit files.
+```
+
+Debug keeps assertions that expose an application defect and reports them. Review lists evidence-backed findings with file and line and changes nothing.
+
+## Dependencies between modules
+
+For Booking, Driver, Vehicle, and Rate may be dependencies. The agent verifies the real relationships from source and the environment, builds a dependency map, prepares test-owned records through the UI or an authorized real API, and cleans them up newest first. The business step under test always goes through the UI. If a role, service, or record is missing, the affected cases are `blocked` with the prerequisite named, and independent cases continue.
 
 **No mocks, stubs, fake backends, HAR replay, forged or edited responses, or injected state.**
 
-## Step 5 — What you get back
+## What you get back
 
-The agent delivers:
+| Output | Where | Written by |
+| --- | --- | --- |
+| Playwright tests | The repo's existing test folders | cases, screen, debug |
+| Runbook: case mapping, setup, commands per case and module, last real result | `qa/e2e/<module>.md` or the repo's convention | cases, screen |
+| Screen inventory: `RT-N`, `EL-N`, linked screens, round log | `qa/screens/<screen>.md` | screen |
+| Discovery report: `DISC-N` cases and questions | `qa/discovery/<feature>.md` | explore |
+| Project facts and helper inventory | `qa/project-context.md` | cases, screen |
 
-- Playwright tests that follow the repo's current structure.
-- A mapping of every source case and every added `DISC-N`, including cases that could not be run and why.
-- A source or evidence note for a case found from source or the UI, with observation separated from the correct requirement.
-- An actual result: passed, flaky, failed, skipped, blocked, or not run.
-- E2E docs in the project's convention, or `qa/e2e/<module>.md` when no location exists yet.
+The final reply also lists helpers reused and any new helper with its reason.
 
-The docs contain dependencies, the data, role, and env the run needs, commands for each case and for the module, commands to open the report or trace, and the verification status. A case with no runnable test does not get a fake command.
+## Status words
 
-## Step 6 — Rerun or add cases
+| Kind | Values |
+| --- | --- |
+| Case decision | `ready`, `proposed`, `blocked`, `manual`, `duplicate` |
+| Coverage | `automated`, `partial`, `proposed`, `blocked`, `manual`, `duplicate`; screen items also `uncovered`, `reachability` |
+| Run result | `passed`, `failed`, `flaky`, `skipped`, `expected-fail`, `blocked`, `not-run` |
 
-Open the docs the agent wrote and copy the command for that case or module. This guide does not hard-code a Playwright command, because config, browser project, and package manager depend on the real repo.
+`flaky` and `expected-fail` never count as passed. `--list` or a successful compile is not evidence that a test passed.
 
-When you add a case or change a screen, send the same short request from Step 3. For a failing test only, use `pw-e2e-debug`. For a review only, use `pw-e2e-review`.
+## Rerun
 
-"Handle all of them" means every in-scope case is implemented or explained. It does not mean every case passed, or that every product situation was explored. `--list` or a successful compile is not evidence that E2E passed.
+Copy the command for a case or module from the runbook. This guide does not hard-code a Playwright command because config, project, and package manager differ per repo.
+
+## Check the skills themselves
+
+`evals/README.md` has scenarios E1–E9b that check whether an agent follows the skills (no mocks, oracle from the case, helpers reused, checkpoint respected). Run them in a fresh copy of `sample/` after changing a skill or switching model or tool, and record results there.
 
 ## Local sample
 
-`sample/` is a small Booking module in this kit. It is a live UI and HTTP service for trying the workflow. `install.py` does not copy it into a target project. See `sample/qa/e2e/booking.md` after a run for the commands and the last observed result.
+`sample/` is a small Booking module with a real page and HTTP service. `install.py` does not copy it into a project. See `sample/qa/e2e/booking.md` for commands and the last observed result.

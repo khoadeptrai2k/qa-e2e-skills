@@ -5,7 +5,7 @@ description: Diagnose and repair failing or flaky Playwright E2E tests using tra
 
 # Diagnose Playwright failures
 
-Read applicable repo instructions, the failing test, its source case, fixtures, and config. Preserve the expected business behavior. Write every reply and document in English. No sibling skill or specific tool server is required. Read [E2E contract](references/e2e-contract.md) and keep the repair inside it.
+Read applicable repo instructions, the failing test, its source case, fixtures, and config. Preserve the expected business behavior. Reply in the user's language. Write test titles, code comments, and saved documents in English unless the repository already uses another language. No sibling skill or specific tool server is required. Read [E2E contract](references/e2e-contract.md) and keep the repair inside it.
 
 ## Find the failing transition
 
@@ -22,14 +22,14 @@ Test a concrete hypothesis with a targeted observation. For a timeout, inspect w
 
 ## Repair within scope
 
-Make the smallest evidence-backed correction. Missing real dependencies stay blocked. Keep the source case's expected result. Replace a brittle selector with a verified semantic locator or test ID. Do not silently fall back to a different target. Synchronize on visible or network state. Create independent records or accounts where writes collide. Any configuration change must address an observed requirement and explain its effect.
+Make the smallest evidence-backed correction. Missing real dependencies stay blocked. Keep the source case's expected result. Replace a brittle selector with a verified semantic locator or test ID. Fix shared code in the existing helper or fixture rather than copying it into the test. Do not silently fall back to a different target. Synchronize on visible or network state. Create independent records or accounts where writes collide. Any configuration change must address an observed requirement and explain its effect.
 
-Retain an assertion that exposes an application bug and report the reproduction. Repair application code only when requested. Do not hide a failure with catch-and-continue, an optional assertion, a skip, a forced action, a broad timeout increase, or more retries. A quarantine needs an explicit project policy or user direction, a tracked reason, and visible reporting. It is not a repair. Done when the correction is the smallest change that addresses the classified cause, or the case is reported blocked.
+Retain an assertion that exposes an application bug and report the reproduction. Repair application code only when requested. Do not hide a failure with catch-and-continue, an optional assertion, a skip, a forced action, a broad timeout increase, or more retries. A quarantine needs an explicit project policy or user direction, a tracked reason, and visible reporting. It is not a repair. The same applies to `test.fail()`: allowed only under that policy, with an annotation linking the defect, and the original assertion unchanged. Done when the correction is the smallest change that addresses the classified cause, or the case is reported blocked.
 
 ## Verify and report
 
 Run the affected test after the correction, and nearby tests affected by a shared helper or config change. For an intermittent failure, choose a bounded repeat or concurrency check from the suspected trigger and state its limit. Do not claim permanent stability. Stop when the same external prerequisite remains unavailable.
 
-Report the root cause or the remaining hypothesis, the evidence, changed files, exact commands, passed, failed, flaky, skipped, or blocked results, and useful artifact paths. Keep secrets out of shared logs.
+Report the root cause or the remaining hypothesis, the evidence, changed files, exact commands, run results in the contract's vocabulary, and useful artifact paths. Keep secrets out of shared logs.
 
 When a repair changes case names, selection commands, prerequisites, or artifact handling, update the existing feature E2E docs, or `qa/e2e/<feature>.md`, with accurate per-case and module commands and the observed verification result. Do not rewrite an unaffected runbook or claim that an unexecuted command passed.

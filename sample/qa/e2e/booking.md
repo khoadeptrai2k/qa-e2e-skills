@@ -19,7 +19,7 @@ Dependency map:
 - Install: `npm install` then `npx playwright install chromium`
 - Environment: local Node server started by Playwright `webServer` at `http://127.0.0.1:4173`. Override the port with `PORT`.
 - Role: implicit dispatcher. No login and no secret variables.
-- Data: the server keeps bookings in memory and starts empty. BK-01 deletes the booking it creates with `DELETE /api/bookings/:id`.
+- Data: the server keeps bookings in memory and starts empty. BK-01 registers the booking id from the observed `POST /api/bookings` response in the `ownedBookings` fixture, which deletes it with `DELETE /api/bookings/:id` in teardown, including when the test fails. Teardown attempts every owned booking, newest first, and reports all cleanup failures together. BK-02 and BK-03 watch outgoing booking requests and check that no Ben or Van booking was created during the test; bookings that existed before the test are ignored.
 
 ## Case mapping
 
@@ -57,8 +57,8 @@ Traces are configured with `retain-on-failure`. The passing run did not write a 
 
 ## Latest verification
 
-- Command executed: `npm run test:e2e` from `sample/`
-- Playwright: `@playwright/test` 1.65.0, project `chromium`
-- Result: 3 passed, 0 failed, 0 flaky, 0 skipped (about 1.4s)
+- Run on 2026-11-09 from `sample/`, `@playwright/test` 1.65.0, project `chromium`
+- `npx playwright test`: 3 passed, 0 failed, 0 flaky, 0 skipped
+- `npx playwright test --repeat-each=5`: 15 passed
 - Not run: BK-04 blocked, DISC-01 proposed
 - Selection check only: the three `--grep` commands above each listed 1 test. `BK-04` listed 0 tests.
