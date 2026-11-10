@@ -48,7 +48,7 @@ test("BK-01 confirms a booking for Ana in a Sedan at 42.00 USD", async ({ page, 
 
   await test.step("Open Booking", async () => {
     await page.goto("/");
-    await expect(page.getByRole("heading", { name: "Booking" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Booking", level: 1, exact: true })).toBeVisible();
     await expect(page.getByLabel("Driver")).toBeVisible();
     await expect(page.getByLabel("Vehicle")).toBeVisible();
     await expect(confirm).toBeDisabled();

@@ -16,6 +16,51 @@ Start with the [step-by-step guide](GUIDE.md) ([tiếng Việt](HUONG-DAN.md)): 
 
 Each skill stands alone. It does not need the qa-skills repo, a QA runner, an agent framework, or a specific MCP server. Live UI exploration needs browser tooling and access to a real environment. This kit does not install Playwright, browsers, dependencies, or MCP config.
 
+## Example: Booking from a case file
+
+![Playwright running Booking: select Ana, select Sedan, confirm 42.00 USD](docs/media/booking-e2e.gif)
+
+[Watch or download the recorded video (WebM)](docs/media/booking-e2e.webm)
+
+Actual BK-01 execution against the sample UI and HTTP service. Action highlights and step captions come from Playwright; demo-only slow motion makes the interactions easier to follow.
+
+The included [sample](sample/) has a Booking page, an HTTP service, and dependencies on Driver, Vehicle, and Rate. Read the [case file](sample/cases/booking.md), [test code](sample/tests/booking.spec.ts), [discovery report](sample/qa/discovery/booking.md), and [runbook](sample/qa/e2e/booking.md) to see the deliverables together.
+
+After installing the skills into the sample project, open it in your coding agent and ask:
+
+```text
+Use pw-e2e-cases. Read app/ and cases/booking.md to write E2E for Booking,
+including related dependencies and missing cases found through the UI.
+```
+
+| Input / finding | What the workflow produces |
+| --- | --- |
+| BK-01: Ana + Sedan, with a required rate of 42.00 USD | A UI booking test with assertions on the confirmation and stored booking, plus cleanup |
+| BK-02: Ben is unavailable | A test of the disabled driver option and absence of a booking submission |
+| BK-03: Van has no configured rate | A test of the missing-rate message and disabled confirmation |
+| BK-04: a manager voids a booking, but the sample has no manager role or void API | A `blocked` mapping entry naming the missing dependencies; no fake test command |
+| DISC-01: double-submit behavior has no confirmed requirement | A proposed case and a business question, rather than a guessed assertion |
+
+To run the supplied sample tests, from `sample/`:
+
+```bash
+npm ci
+npx playwright install chromium
+npm run test:e2e
+npx playwright test --project=chromium --grep 'BK-01'
+npx playwright show-report
+```
+
+Playwright starts the sample's local service. The tests use its UI and actual HTTP endpoints without mocked responses. The sample already contains tests and docs; use a separate copy without those deliverables when evaluating generation from scratch. For your own module, provide its source and case file in the same short request.
+
+To record BK-01 again, from `sample/`:
+
+```bash
+npm run test:e2e -- --config=playwright.demo.config.ts
+```
+
+The demo config reuses the existing test and enables video, action annotations, and slow motion only for this command. The new recording is saved under `sample/test-results/demo/`. The normal test command keeps its original speed and recording settings.
+
 ## Install into a project
 
 Requires Python 3.9+. Unzip first if you are using a ZIP. From the kit directory:
@@ -119,10 +164,6 @@ The skills do not change an expected result, skip a test, or mock a business flo
 ## Maintaining the kit
 
 Each skill carries its own copy of `references/e2e-contract.md`, and `pw-e2e-cases` and `pw-e2e-screen` share `implementation.md`, `examples.md`, `runbook.md`, and `ui-discovery.md`, so each skill works standalone. Edit every copy of a shared file together, then run `python3 install.py --check`; the installer also refuses to install a kit whose copies differ. Manual behavior scenarios live in [evals/README.md](evals/README.md).
-
-## Proof and limits
-
-Structure and frontmatter were checked, and the installer was exercised in a temporary directory: single-agent and all-agent copy, conflict refusal, dry-run, and reference files copied with each skill. `sample/` is a local Booking module with a real page and HTTP service. On 2026-11-09, `npx playwright test` in `sample/` passed 3 tests on Chromium (`@playwright/test` 1.65.0): BK-01, BK-02, and BK-03, and 15 of 15 with `--repeat-each=5`. BK-04 stayed blocked. DISC-01 stayed proposed. Details are in `sample/qa/e2e/booking.md`. That run is not proof on three products or an arbitrary website. Results still depend on the model, permissions, data, and browser tools of each host.
 
 ## References
 

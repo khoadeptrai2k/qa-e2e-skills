@@ -62,3 +62,10 @@ Traces are configured with `retain-on-failure`. The passing run did not write a 
 - `npx playwright test --repeat-each=5`: 15 passed
 - Not run: BK-04 blocked, DISC-01 proposed
 - Selection check only: the three `--grep` commands above each listed 1 test. `BK-04` listed 0 tests.
+
+## UI refresh verification — 2026-11-10
+
+- Updated the Booking layout, responsive styling and decorative vehicle illustration. Application request handlers are unchanged.
+- Scoped the screen-heading locator to the exact level-1 Booking heading. Business assertions are unchanged.
+- `npm run test:e2e`: 3 passed on Chromium.
+- `npm run test:e2e -- --config=playwright.demo.config.ts`: BK-01 passed; refreshed the README GIF and WebM recording.
