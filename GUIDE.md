@@ -47,6 +47,140 @@ Optional: copy `templates/project-context.md` to `qa/project-context.md` and fil
 
 You do not chain them. Each one runs alone. Name the skill in the first sentence; `/pw-e2e-screen` (Claude Code, Cursor) or `$pw-e2e-screen` (Codex) also works.
 
+## Step 4 — Preflight checklist
+
+Run these in the project under test (not the kit) before `pw-e2e-cases` or `pw-e2e-screen`.
+
+| # | Check | Command | Expect |
+| --- | --- | --- | --- |
+| 1 | Skills installed | `ls .claude/skills .agents/skills` | The five `pw-*` folders |
+| 2 | Playwright in the project | `npx playwright --version` | A version number |
+| 3 | Browser installed | `npx playwright install chromium` | Downloaded or already installed |
+| 4 | Config loads | `npx playwright test --list` | No config error (an empty list is fine) |
+| 5 | Test environment up | `curl -I "$BASE_URL"` (use your project's variable) | HTTP 200 or 3xx |
+| 6 | Account variables set (names only) | `env \| grep -E "E2E_\|TEST_" \| cut -d= -f1` | The variable names your tests need |
+| 7 | Clean git state | `git status --short` | Empty, so the agent's diff is easy to read |
+
+By hand:
+
+- [ ] Case file path known; for `pw-e2e-screen`, the entry route too.
+- [ ] Frontend and backend source readable by the agent.
+- [ ] Browser tooling available to the agent (without it the agent works from source and says so).
+- [ ] Test environment, **not production**.
+- [ ] Optional: `qa/project-context.md` from `templates/project-context.md`.
+- [ ] A **new chat** opened after installing.
+
+## Step 5 — Command reference
+
+### How to call a skill
+
+| Tool | Syntax | Example |
+| --- | --- | --- |
+| Claude Code, Cursor | `/<skill> <request>` | `/pw-e2e-screen Booking screen (entry route /bookings) …` |
+| Codex | `$<skill> <request>` | `$pw-e2e-screen Booking screen (entry route /bookings) …` |
+| Any tool | Name the skill in the first sentence | `Use pw-e2e-screen on the Booking screen …` |
+
+All three behave the same. Write the request after the skill name on the same message. Keep secrets out of the prompt; refer to env variable names instead.
+
+### `pw-e2e-cases` — tests from a case file
+
+| | |
+| --- | --- |
+| Required | Case file path; module or screen name |
+| Optional | Source paths; roles to use; "only these cases: BK-01, BK-03"; "do not explore the UI" |
+| The agent may ask | A missing expected result, account, or environment value that blocks a case |
+| You get | Tests, `qa/e2e/<module>.md` runbook, mapping of every case and `DISC-N`, run results |
+| Next | `pw-e2e-review` on the new tests |
+
+```text
+/pw-e2e-cases every case in cases/booking.md for the Booking module.
+```
+
+```text
+/pw-e2e-cases every case in cases/booking.md for the Booking module.
+Read source at web/src/booking and api/src/booking. Roles: dispatcher (E2E_DISPATCHER_*).
+Real test environment, no mocks. Keep unclear business behavior proposed and list the questions.
+```
+
+### `pw-e2e-screen` — sweep one screen in rounds
+
+| | |
+| --- | --- |
+| Required | Screen name and entry route |
+| Optional | Case file paths; roles; "do not click <control>"; sub-routes to skip |
+| The agent asks | The checkpoint question at the end of every round |
+| You get | Tests, `qa/screens/<screen>.md` inventory (`RT-N`, `EL-N`, linked screens, round log), runbook |
+| Next | Answer the checkpoint; after `Option 5`, run `pw-e2e-review` |
+
+```text
+/pw-e2e-screen Booking screen (entry route /bookings). Cases are in cases/booking.md. Ask me before writing more.
+```
+
+```text
+/pw-e2e-screen Booking screen (entry route /bookings). Cases are in cases/booking.md and cases/booking-detail.md.
+Roles: dispatcher, manager. Do not click "Export CSV" or "Void". Ask me before writing more.
+```
+
+Checkpoint replies (send as a normal message, no slash needed):
+
+| Reply | Meaning |
+| --- | --- |
+| `Option 1: EL-4, EL-6` | Write tests for these items (expected result must already be established) |
+| `Option 2: added cases/booking-detail.md` | Read the new file and map it next round |
+| `Option 3` | Reachability checks for uncovered safe items |
+| `Option 4: Driver` | Sweep the linked Driver screen next |
+| `Option 5` | Stop and finalize the documents |
+
+To resume another day, send the first prompt again in a new chat; the agent continues from `qa/screens/<screen>.md`.
+
+### `pw-ui-explore` — write new cases from the UI, no code
+
+| | |
+| --- | --- |
+| Required | Screen or feature name |
+| Optional | Existing case file to compare against; roles; areas to skip |
+| The agent may ask | Login or role it cannot reach |
+| You get | `qa/discovery/<screen>.md` with `DISC-N` cases, evidence, and business questions |
+| Next | Answer the questions, then `pw-e2e-cases` on the confirmed file or `Option 2` in `pw-e2e-screen` |
+
+```text
+/pw-ui-explore Booking screen. Compare with cases/booking.md. Write missing cases with steps, actual result, and the question that needs a business answer. No test code.
+```
+
+### `pw-e2e-debug` — fix or explain a failing test
+
+| | |
+| --- | --- |
+| Required | Test file or case ID |
+| Optional | Failure output, trace or report path; "CI only"; "fails 1 in 5 runs" |
+| The agent may ask | Permission to edit application code (it does not by default) |
+| You get | Cause classified as test, application, data, or environment; the smallest fix; rerun results; runbook update if commands changed |
+| Next | `pw-e2e-review` if the fix touched shared helpers |
+
+```text
+/pw-e2e-debug BK-01 in tests/booking.spec.ts. Trace: test-results/booking-BK-01-chromium/trace.zip
+```
+
+### `pw-e2e-review` — audit tests, no edits
+
+| | |
+| --- | --- |
+| Required | Test files |
+| Optional | Case file to map against; "fix the findings" (only then does it edit) |
+| You get | Findings with file and line, case-to-assertion map, commands it ran and their results |
+| Next | Fix findings yourself, or ask `pw-e2e-review … fix the findings` |
+
+```text
+/pw-e2e-review tests/booking.spec.ts against cases/booking.md. Do not edit files.
+```
+
+## Standard order
+
+1. Step 4: preflight checklist.
+2. `/pw-e2e-cases` or `/pw-e2e-screen`.
+3. `/pw-e2e-review` on the new tests.
+4. `/pw-e2e-debug` when a test fails or is flaky.
+
 ## Workflow A — Tests from a case file
 
 ```text

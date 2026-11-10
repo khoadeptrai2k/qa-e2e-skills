@@ -47,6 +47,140 @@ Tuỳ chọn: copy `templates/project-context.md` thành `qa/project-context.md`
 
 Không cần gọi nối các skill. Ghi tên skill ở câu đầu tiên là đủ; cũng có thể gõ `/pw-e2e-screen` (Claude Code, Cursor) hoặc `$pw-e2e-screen` (Codex).
 
+## Bước 4 — Checklist trước khi chạy
+
+Chạy trong dự án cần test (không phải thư mục kit) trước khi dùng `pw-e2e-cases` hoặc `pw-e2e-screen`.
+
+| # | Kiểm tra | Lệnh | Kết quả đúng |
+| --- | --- | --- | --- |
+| 1 | Đã cài skill | `ls .claude/skills .agents/skills` | Đủ 5 thư mục `pw-*` |
+| 2 | Dự án có Playwright | `npx playwright --version` | In ra số phiên bản |
+| 3 | Đã cài trình duyệt | `npx playwright install chromium` | Tải xong hoặc báo đã có |
+| 4 | Config đọc được | `npx playwright test --list` | Không lỗi config (danh sách rỗng cũng được) |
+| 5 | Môi trường test đang chạy | `curl -I "$BASE_URL"` (dùng biến của dự án bạn) | HTTP 200 hoặc 3xx |
+| 6 | Có biến tài khoản (chỉ in tên) | `env \| grep -E "E2E_\|TEST_" \| cut -d= -f1` | Thấy tên các biến test cần |
+| 7 | Git sạch | `git status --short` | Trống, để dễ xem agent đã sửa gì |
+
+Kiểm tra bằng tay:
+
+- [ ] Biết đường dẫn file case; với `pw-e2e-screen` cần thêm route của màn hình.
+- [ ] Agent đọc được source frontend và backend.
+- [ ] Agent có công cụ trình duyệt (không có thì agent chỉ dựa vào source và sẽ nói rõ).
+- [ ] Đang dùng môi trường test, **không phải production**.
+- [ ] Tuỳ chọn: có `qa/project-context.md` copy từ `templates/project-context.md`.
+- [ ] Đã mở **chat mới** sau khi cài.
+
+## Bước 5 — Tra cứu lệnh
+
+### Cách gọi skill
+
+| Công cụ | Cú pháp | Ví dụ |
+| --- | --- | --- |
+| Claude Code, Cursor | `/<skill> <yêu cầu>` | `/pw-e2e-screen Booking screen (entry route /bookings) …` |
+| Codex | `$<skill> <yêu cầu>` | `$pw-e2e-screen Booking screen (entry route /bookings) …` |
+| Mọi công cụ | Ghi tên skill ở câu đầu | `Use pw-e2e-screen on the Booking screen …` |
+
+Ba cách cho kết quả như nhau. Viết yêu cầu ngay sau tên skill trong cùng một tin nhắn. Không ghi mật khẩu hay token vào prompt; chỉ ghi tên biến môi trường.
+
+### `pw-e2e-cases` — viết test từ file case
+
+| | |
+| --- | --- |
+| Bắt buộc | Đường dẫn file case; tên module hoặc màn hình |
+| Tuỳ chọn | Đường dẫn source; role cần dùng; "chỉ làm BK-01, BK-03"; "không khám phá UI" |
+| Agent có thể hỏi | Thiếu kết quả mong đợi, tài khoản hoặc giá trị môi trường làm case bị chặn |
+| Bạn nhận | Test, runbook `qa/e2e/<module>.md`, bảng map mọi case và `DISC-N`, kết quả chạy |
+| Bước tiếp | `pw-e2e-review` trên test vừa viết |
+
+```text
+/pw-e2e-cases every case in cases/booking.md for the Booking module.
+```
+
+```text
+/pw-e2e-cases every case in cases/booking.md for the Booking module.
+Read source at web/src/booking and api/src/booking. Roles: dispatcher (E2E_DISPATCHER_*).
+Real test environment, no mocks. Keep unclear business behavior proposed and list the questions.
+```
+
+### `pw-e2e-screen` — quét một màn hình theo vòng
+
+| | |
+| --- | --- |
+| Bắt buộc | Tên màn hình và route vào màn hình |
+| Tuỳ chọn | File case; role; "không bấm <nút>"; route con bỏ qua |
+| Agent sẽ hỏi | Câu hỏi checkpoint ở cuối mỗi vòng |
+| Bạn nhận | Test, danh sách `qa/screens/<screen>.md` (`RT-N`, `EL-N`, màn liên kết, nhật ký vòng), runbook |
+| Bước tiếp | Trả lời checkpoint; sau `Option 5` thì chạy `pw-e2e-review` |
+
+```text
+/pw-e2e-screen Booking screen (entry route /bookings). Cases are in cases/booking.md. Ask me before writing more.
+```
+
+```text
+/pw-e2e-screen Booking screen (entry route /bookings). Cases are in cases/booking.md and cases/booking-detail.md.
+Roles: dispatcher, manager. Do not click "Export CSV" or "Void". Ask me before writing more.
+```
+
+Trả lời checkpoint (gửi như tin nhắn bình thường, không cần dấu `/`):
+
+| Trả lời | Ý nghĩa |
+| --- | --- |
+| `Option 1: EL-4, EL-6` | Viết test cho các phần tử này (phải đã rõ kết quả mong đợi) |
+| `Option 2: added cases/booking-detail.md` | Đọc file mới và map ở vòng sau |
+| `Option 3` | Kiểm tra truy cập cho phần tử an toàn chưa có test |
+| `Option 4: Driver` | Quét màn Driver liên kết ở vòng sau |
+| `Option 5` | Dừng và chốt tài liệu |
+
+Làm tiếp hôm khác: gửi lại prompt đầu tiên trong chat mới, agent sẽ đọc `qa/screens/<screen>.md` và làm tiếp.
+
+### `pw-ui-explore` — viết case mới từ UI, không viết code
+
+| | |
+| --- | --- |
+| Bắt buộc | Tên màn hình hoặc tính năng |
+| Tuỳ chọn | File case hiện có để so sánh; role; khu vực bỏ qua |
+| Agent có thể hỏi | Đăng nhập hoặc role không vào được |
+| Bạn nhận | `qa/discovery/<screen>.md` gồm case `DISC-N`, bằng chứng và câu hỏi nghiệp vụ |
+| Bước tiếp | Trả lời câu hỏi, rồi chạy `pw-e2e-cases` với file đã chốt hoặc `Option 2` trong `pw-e2e-screen` |
+
+```text
+/pw-ui-explore Booking screen. Compare with cases/booking.md. Write missing cases with steps, actual result, and the question that needs a business answer. No test code.
+```
+
+### `pw-e2e-debug` — sửa hoặc giải thích test fail
+
+| | |
+| --- | --- |
+| Bắt buộc | File test hoặc mã case |
+| Tuỳ chọn | Log lỗi, trace hoặc đường dẫn report; "chỉ fail trên CI"; "fail 1/5 lần" |
+| Agent có thể hỏi | Có được sửa code ứng dụng không (mặc định là không) |
+| Bạn nhận | Nguyên nhân (test, ứng dụng, dữ liệu hay môi trường), bản sửa nhỏ nhất, kết quả chạy lại, cập nhật runbook nếu lệnh thay đổi |
+| Bước tiếp | `pw-e2e-review` nếu bản sửa đụng tới helper dùng chung |
+
+```text
+/pw-e2e-debug BK-01 in tests/booking.spec.ts. Trace: test-results/booking-BK-01-chromium/trace.zip
+```
+
+### `pw-e2e-review` — review test, không sửa
+
+| | |
+| --- | --- |
+| Bắt buộc | File test |
+| Tuỳ chọn | File case để đối chiếu; "fix the findings" (chỉ khi đó mới sửa) |
+| Bạn nhận | Lỗi kèm file và dòng, bảng map case với assertion, các lệnh đã chạy và kết quả |
+| Bước tiếp | Tự sửa, hoặc gửi `pw-e2e-review … fix the findings` |
+
+```text
+/pw-e2e-review tests/booking.spec.ts against cases/booking.md. Do not edit files.
+```
+
+## Thứ tự chạy chuẩn
+
+1. Bước 4: checklist trước khi chạy.
+2. `/pw-e2e-cases` hoặc `/pw-e2e-screen`.
+3. `/pw-e2e-review` trên test vừa viết.
+4. `/pw-e2e-debug` khi có test fail hoặc chập chờn.
+
 ## Quy trình A — Viết test từ file case
 
 ```text
